@@ -34,6 +34,7 @@ export class AuthService {
         role: Role.GUEST,
         expiresAt,
         name: `Guest_${uuidv4().slice(0, 8)}`,
+        googleId: `guest_${uuidv4()}`, // Provide unique googleId for guests
       },
     });
     return this.generateToken(user, "15m");
