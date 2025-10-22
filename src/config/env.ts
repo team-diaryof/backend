@@ -8,4 +8,8 @@ export const env = cleanEnv(process.env, {
   GOOGLE_CLIENT_ID: str(),
   GOOGLE_CLIENT_SECRET: str(),
   SESSION_SECRET: str(),
+  BASE_URL: str({
+    default: "http://localhost:8080",
+    desc: "Base URL for OAuth callbacks",
+  }),
 });

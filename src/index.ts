@@ -5,6 +5,7 @@ import { env } from "./config/env";
 import passport from "passport";
 import logger from "./utils/logger";
 import authRoutes from "./routes/authRoute";
+import "./passport"; // Import passport configuration
 
 dotenv.config();
 
