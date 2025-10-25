@@ -14,7 +14,13 @@ class AuthService {
     async register(email, password, name) {
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         const user = await client_1.default.user.create({
-            data: { email, password: hashedPassword, name, role: client_2.Role.USER },
+            data: {
+                email,
+                password: hashedPassword,
+                name,
+                role: client_2.Role.USER,
+                googleId: undefined, // Don't set googleId for regular registrations
+            },
         });
         return {
             token: this.generateToken(user),

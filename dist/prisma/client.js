@@ -25,10 +25,10 @@ prisma.$on("error", (e) => {
 async function connect() {
     try {
         await prisma.$connect();
-        logger_1.default.info("Connected to MongoDB Atlas");
+        logger_1.default.info("Connected to PostgreSQL database");
     }
     catch (error) {
-        logger_1.default.error("Failed to connect to MongoDB Atlas", error);
+        logger_1.default.error("Failed to connect to PostgreSQL database", error);
         process.exit(1);
     }
 }

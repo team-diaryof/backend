@@ -2,10 +2,12 @@ import dotenv from "dotenv";
 import express, { NextFunction, Request, Response } from "express";
 import session from "express-session";
 import cors from "cors";
+import cron from "node-cron";
 import { env } from "./config/env";
 import passport from "passport";
 import logger from "./utils/logger";
 import authRoutes from "./routes/authRoute";
+import { cleanupExpiredGuests } from "./prisma/setupTTL";
 import "./passport"; // Import passport configuration
 
 dotenv.config();
@@ -44,6 +46,13 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: "Internal server error" });
 });
 
+// Schedule cleanup of expired guest users every hour
+cron.schedule("0 * * * *", () => {
+  logger.info("Running scheduled cleanup of expired guest users");
+  cleanupExpiredGuests();
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  logger.info("Server started successfully");
 });

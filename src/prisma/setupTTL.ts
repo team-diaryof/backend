@@ -3,25 +3,29 @@ import dotenv from "dotenv";
 // Load environment variables first
 dotenv.config();
 
-import { MongoClient } from "mongodb";
-import { env } from "../config/env";
+import prisma from "./client";
 import logger from "../utils/logger";
 
-async function setupTTLIndex() {
-  const client = new MongoClient(env.DATABASE_URL);
-
+async function cleanupExpiredGuests() {
   try {
-    await client.connect();
-    const db = client.db();
-    await db
-      .collection("users")
-      .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    logger.info("TTL index created on users.expired");
+    const result = await prisma.user.deleteMany({
+      where: {
+        role: "GUEST",
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+
+    if (result.count > 0) {
+      logger.info(`Cleaned up ${result.count} expired guest users`);
+    }
   } catch (error) {
-    logger.error("Failed to create TTL index", error);
-  } finally {
-    await client.close();
+    logger.error("Failed to cleanup expired guests", error);
   }
 }
 
-setupTTLIndex().catch((error) => logger.error(error));
+// Run cleanup immediately
+cleanupExpiredGuests().catch((error) => logger.error(error));
+
+export { cleanupExpiredGuests };
