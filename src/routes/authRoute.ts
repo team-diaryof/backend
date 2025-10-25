@@ -25,9 +25,9 @@ router.post("/login", authLimiter, login);
 router.post("/guest", authLimiter, guestLogin);
 
 // Google OAuth routes
-router.get("/auth/google", passport.authenticate("google"));
+router.get("/google", passport.authenticate("google"));
 router.get(
-  "/auth/google/callback",
+  "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req: Request, res: Response) => {
     const user = (req as any).user;

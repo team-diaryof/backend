@@ -22,9 +22,24 @@ export class AuthService {
     password: string,
     name?: string
   ): Promise<AuthResponse> {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new Error("User with this email already exists");
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword, name, role: Role.USER },
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: Role.USER,
+        // Don't include googleId for regular registrations - it will be null by default
+      },
     });
     return {
       token: this.generateToken(user),
