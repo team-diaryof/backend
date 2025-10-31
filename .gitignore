@@ -1,7 +1,17 @@
-node_modules
-# Keep environment variables out of version control
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Logs
+logs/*.log
+
+# Env files
 .env
 
-/src/generated/prisma
-
-logs
+# OS/Editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

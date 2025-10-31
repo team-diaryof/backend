@@ -1,21 +1,25 @@
 import express, { Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import passport from "passport";
-import jwt from "jsonwebtoken";
 import { Role } from "@prisma/client";
-import { guestLogin, login, register } from "../controllers/authController";
+import {
+  guestLogin,
+  login,
+  register,
+  googleCallback,
+} from "../controllers/authController";
 import {
   requireRole,
   requirePermission,
   authenticate,
 } from "../middlewares/authMiddleware";
-import { env } from "../config/env";
+// env no longer needed here after moving google callback logic to controller
 
 const router = express.Router();
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: 15 * 60 * 6000,
+  max: 500,
   message: "Too many login attempts, please try again later.",
 });
 
@@ -29,22 +33,7 @@ router.get("/google", passport.authenticate("google"));
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),
-  (req: Request, res: Response) => {
-    const user = (req as any).user;
-    const token = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        createdAt: user.createdAt,
-      },
-    });
-  }
+  googleCallback
 );
 
 // Protected routes

@@ -8,11 +8,13 @@ import logger from "../utils/logger";
 
 async function cleanupExpiredGuests() {
   try {
+    const currDate = new Date();
+
     const result = await prisma.user.deleteMany({
       where: {
         role: "GUEST",
         expiresAt: {
-          lt: new Date(),
+          lt: currDate,
         },
       },
     });
@@ -24,8 +26,5 @@ async function cleanupExpiredGuests() {
     logger.error("Failed to cleanup expired guests", error);
   }
 }
-
-// Run cleanup immediately
-cleanupExpiredGuests().catch((error) => logger.error(error));
 
 export { cleanupExpiredGuests };
