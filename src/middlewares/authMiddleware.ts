@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { Role } from "@prisma/client";
-import { permission } from "process";
 import { hasPermission } from "../utils/permissions";
 
 export const authenticate = async (

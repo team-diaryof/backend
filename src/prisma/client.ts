@@ -9,11 +9,6 @@ const prisma = new PrismaClient({
     { emit: "stdout", level: "info" },
     { emit: "stdout", level: "warn" },
   ],
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
 });
 
 prisma.$on("error", (e) => {
