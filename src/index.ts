@@ -7,7 +7,6 @@ import { env } from "./config/env";
 import passport from "passport";
 import logger from "./utils/logger";
 import authRoutes from "./routes/authRoute";
-import { cleanupExpiredGuests } from "./prisma/setupTTL";
 import "./passport"; // Import passport configuration
 
 dotenv.config();
@@ -47,10 +46,11 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 // Schedule cleanup of expired guest users every hour
-cron.schedule("0 * * * *", () => {
-  logger.info("Running scheduled cleanup of expired guest users");
-  cleanupExpiredGuests();
-});
+// Disabled due to Prisma deleteMany issues with current DB setup
+// cron.schedule("0 * * * *", () => {
+//   logger.info("Running scheduled cleanup of expired guest users");
+//   cleanupExpiredGuests();
+// });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
