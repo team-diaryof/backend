@@ -76,6 +76,11 @@ export class AuthService {
   }
 
   private generateToken(user: User, expiresIn: string = "1h"): string {
+    // Token only contains minimal fields needed for authentication/authorization:
+    // - id: to identify the user
+    // - role: for authorization checks
+    // Note: password and googleId are excluded as they're not needed in tokens
+    // (password should never be in tokens, googleId is only used for OAuth lookup)
     return jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
       expiresIn: expiresIn as any,
     });
