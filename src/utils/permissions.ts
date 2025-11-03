@@ -3,9 +3,10 @@ import { Role } from "@prisma/client";
 type Permission = "readContent" | "writeContent" | "manageUsers";
 
 const rolePermissions: Record<Role, Permission[]> = {
-  [Role.ADMIN]: ["readContent", "writeContent", "manageUsers"],
-  [Role.USER]: ["readContent", "writeContent"],
-  [Role.GUEST]: ["readContent"],
+  ADMIN: ["readContent", "writeContent", "manageUsers"],
+  USER: ["readContent", "writeContent"],
+  GUEST: ["readContent"],
+  TEMP: [], // no permissions while registration is pending
 };
 
 export const hasPermission = (role: Role, permission: Permission): boolean => {

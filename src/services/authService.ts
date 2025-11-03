@@ -17,33 +17,103 @@ interface AuthResponse {
 }
 
 export class AuthService {
-  async register(
+  private readonly TEMP_ROLE = "TEMP" as unknown as Role;
+  // Send registration OTP to the user
+  async sendRegistrationOtp(
     email: string,
     password: string,
     name?: string
-  ): Promise<AuthResponse> {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
+  ): Promise<{ message: string }> {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser && (existingUser.role as any) !== this.TEMP_ROLE) {
       throw new Error("User with this email already exists");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: Role.USER,
-        // Don't include googleId for regular registrations - it will be null by default
+
+    // Create or update a TEMP user so the VerificationToken can reference userId
+    const tempUser = existingUser
+      ? await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            name,
+            password: hashedPassword,
+            role: this.TEMP_ROLE,
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          },
+        })
+      : await prisma.user.create({
+          data: {
+            email,
+            name,
+            password: hashedPassword,
+            role: this.TEMP_ROLE,
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          },
+        });
+
+    const response = await fetch(
+      "https://diaryof.vercel.app/api/auth/register/send-otp",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || "Failed to send OTP");
+    }
+
+    // Success determined by HTTP 200; ignore external response body
+    return { message: "OTP sent successfully" };
+  }
+
+  // Verify OTP and register user
+  async verifyOtpAndRegister(
+    email: string,
+    otp: string
+  ): Promise<AuthResponse> {
+    // Verify OTP via VerificationToken table
+    const vt = (prisma as any).verificationToken;
+    const tokenRecord = await vt.findFirst({
+      where: {
+        identifier: email,
+        token: otp,
+        expiresAt: { gt: new Date() },
       },
     });
+
+    if (!tokenRecord) {
+      throw new Error("Invalid or expired OTP");
+    }
+
+    // Find the TEMP user created during OTP send
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      await vt.delete({ where: { id: tokenRecord.id } });
+      throw new Error("Registration session not found");
+    }
+
+    // Promote to USER; data (name/password) already stored on TEMP user
+    const updateData: any = {
+      role: Role.USER,
+      expiresAt: null,
+      name: user.name,
+    };
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: updateData,
+    });
+
+    // Invalidate the OTP after successful registration
+    await vt.delete({ where: { id: tokenRecord.id } });
+
     return {
-      token: this.generateToken(user),
-      user: this.sanitizeUser(user),
+      token: this.generateToken(updatedUser),
+      user: this.sanitizeUser(updatedUser),
     };
   }
 

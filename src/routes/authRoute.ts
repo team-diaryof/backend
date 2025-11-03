@@ -6,6 +6,7 @@ import {
   guestLogin,
   login,
   register,
+  verifyOtp,
   googleCallback,
 } from "../controllers/authController";
 import {
@@ -26,6 +27,7 @@ const authLimiter = rateLimit({
 // Authentication routes
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
+router.post("/verify-otp", authLimiter, verifyOtp);
 router.post("/guest", authLimiter, guestLogin);
 
 // Google OAuth routes

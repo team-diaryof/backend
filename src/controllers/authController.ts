@@ -5,18 +5,47 @@ import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 
 export const register = async (req: Request, res: Response) => {
-  const { email, password, name } = req.body;
+  const { email, password, name } = req.body as {
+    email: string;
+    password: string;
+    name?: string;
+  };
 
   try {
-    const authResponse = await authService.register(email, password, name);
-    res.json(authResponse);
+    const { message } = await authService.sendRegistrationOtp(
+      email,
+      password,
+      name
+    );
+    res.json({ message });
   } catch (error) {
-    console.error("Registration Failed", error);
-    logger.error("Registration failed", error);
+    console.error("Send OTP failed", error);
+    logger.error("Send OTP failed", error);
     if (error instanceof Error && /already exists/i.test(error.message)) {
       return res.status(409).json({ error: error.message });
     }
-    res.status(400).json({ error: "Registration failed" });
+    const message =
+      error instanceof Error ? error.message : "Failed to send OTP";
+    res.status(400).json({ error: message });
+  }
+};
+
+export const verifyOtp = async (req: Request, res: Response) => {
+  const { email, otp } = req.body as {
+    email: string;
+    otp: string;
+  };
+
+  try {
+    const authResponse = await authService.verifyOtpAndRegister(email, otp);
+    res.json(authResponse);
+  } catch (error) {
+    console.error("OTP verification failed", error);
+    logger.error("OTP verification failed", error);
+    const message =
+      error instanceof Error ? error.message : "Verification failed";
+    const status = /exists|Invalid|expired/i.test(message) ? 400 : 500;
+    res.status(status).json({ error: message });
   }
 };
 
