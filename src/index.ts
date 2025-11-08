@@ -38,19 +38,16 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Server is up and running");
 });
 
-app.use("/auth", authRoutes);
+// API v1 router
+const apiV1 = express.Router();
+app.use("/api/v1", apiV1);
+
+apiV1.use("/auth", authRoutes);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   logger.error(err.message, { stack: err.stack });
   res.status(500).json({ error: "Internal server error" });
 });
-
-// Schedule cleanup of expired guest users every hour
-// Disabled due to Prisma deleteMany issues with current DB setup
-// cron.schedule("0 * * * *", () => {
-//   logger.info("Running scheduled cleanup of expired guest users");
-//   cleanupExpiredGuests();
-// });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

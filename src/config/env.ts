@@ -12,4 +12,5 @@ export const env = cleanEnv(process.env, {
     default: "http://localhost:8080",
     desc: "Base URL for OAuth callbacks",
   }),
+  EMAIL_API_SECRET: str({ desc: "Email API secret key for authorization" }),
 });

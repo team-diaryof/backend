@@ -49,6 +49,24 @@ export const verifyOtp = async (req: Request, res: Response) => {
   }
 };
 
+export const resendOtp = async (req: Request, res: Response) => {
+  const { email } = req.body as {
+    email: string;
+  };
+
+  try {
+    const { message } = await authService.resendOtp(email);
+    res.json({ message });
+  } catch (error) {
+    console.error("Resend OTP failed", error);
+    logger.error("Resend OTP failed", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to resend OTP";
+    const status = /not found|No valid/i.test(message) ? 404 : 400;
+    res.status(status).json({ error: message });
+  }
+};
+
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
@@ -83,6 +101,65 @@ export const guestLogin = async (req: Request, res: Response) => {
       return res.status(500).json({ error: error.message });
     }
     res.status(500).json({ error: "Guest login failed" });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  const { email } = req.body as {
+    email: string;
+  };
+
+  try {
+    const { message } = await authService.sendPasswordResetOtp(email);
+    res.json({ message });
+  } catch (error) {
+    console.error("Forgot password failed", error);
+    logger.error("Forgot password failed", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to send password reset OTP";
+    res.status(400).json({ error: message });
+  }
+};
+
+export const verifyPasswordResetOtp = async (req: Request, res: Response) => {
+  const { email, otp } = req.body as {
+    email: string;
+    otp: string;
+  };
+
+  try {
+    const { message } = await authService.verifyPasswordResetOtp(email, otp);
+    res.json({ message });
+  } catch (error) {
+    console.error("Verify password reset OTP failed", error);
+    logger.error("Verify password reset OTP failed", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to verify OTP";
+    const status = /Invalid|expired|not found/i.test(message) ? 400 : 500;
+    res.status(status).json({ error: message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  const { email, newPassword } = req.body as {
+    email: string;
+    newPassword: string;
+  };
+
+  try {
+    const { message } = await authService.resetPassword(email, newPassword);
+    res.json({ message });
+  } catch (error) {
+    console.error("Reset password failed", error);
+    logger.error("Reset password failed", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to reset password";
+    const status = /Invalid|expired|not found|No valid/i.test(message)
+      ? 400
+      : 500;
+    res.status(status).json({ error: message });
   }
 };
 

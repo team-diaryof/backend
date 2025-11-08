@@ -7,6 +7,10 @@ import {
   login,
   register,
   verifyOtp,
+  resendOtp,
+  forgotPassword,
+  verifyPasswordResetOtp,
+  resetPassword,
   googleCallback,
 } from "../controllers/authController";
 import {
@@ -28,6 +32,10 @@ const authLimiter = rateLimit({
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
 router.post("/verify-otp", authLimiter, verifyOtp);
+router.post("/resend-otp", authLimiter, resendOtp);
+router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/verify-password-reset-otp", authLimiter, verifyPasswordResetOtp);
+router.post("/reset-password", authLimiter, resetPassword);
 router.post("/guest", authLimiter, guestLogin);
 
 // Google OAuth routes
