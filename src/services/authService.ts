@@ -16,6 +16,7 @@ interface AuthResponse {
     id: string;
     email: string;
     name: string | null;
+    profilePictureUrl: string | null;
     role: Role;
     createdAt: Date;
   };
@@ -508,6 +509,7 @@ export class AuthService {
     id: string;
     email: string;
     name: string | null;
+    profilePictureUrl: string | null;
     role: Role;
     createdAt: Date;
   } {
@@ -515,6 +517,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       name: user.name,
+      profilePictureUrl: user.profilePictureUrl,
       role: user.role,
       createdAt: user.createdAt,
     };

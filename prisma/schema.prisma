@@ -12,11 +12,72 @@ model User {
   email             String             @unique
   password          String?
   name              String?
+  profilePictureUrl String?
   googleId          String?            @unique
   role              Role               @default(USER)
+  isPremium         Boolean            @default(false)
+  premiumUntil      DateTime?          // null = never had / expired
+  stripeCustomerId  String?            @unique
+  stripeSubscriptionId String?         @unique
   createdAt         DateTime           @default(now())
   expiresAt         DateTime?
   VerificationToken VerificationToken?
+  days              Day[]
+  diaryGenerations DiaryGeneration[]
+}
+
+
+// Day will be have a list of tasks
+model Day {
+  id        String    @id @default(cuid())
+  date      DateTime  @db.Date // Pure date (no time), e.g., 2025-11-09
+  userId    String
+  tasks     Task[]
+  summary   String?   // Auto-generated daily AI summary
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  User      User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model Task {
+  id           String    @id @default(cuid())
+  description  String
+  timestamp    DateTime  // Full UTC timestamp (from speech or current time if not specified)
+  audioUrl     String?   // URL to stored audio file (S3, etc.)
+  transcription String?  // Raw transcribed text from speech-to-text
+  sentiment    String?   // "positive" | "negative" | "neutral" | "mixed"
+  category     String?   // AI-extracted: "hydration", "exercise", "work", etc.
+  dayId        String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  Day          Day       @relation(fields: [dayId], references: [id])
+
+  @@index([dayId])
+  @@index([timestamp])
+  @@index([dayId, timestamp]) // Composite index for efficient day + time queries
+}
+
+model DiaryGeneration {
+  id          String   @id @default(cuid())
+  userId      String
+  fromDate    DateTime @db.Date
+  toDate      DateTime @db.Date
+  prompt      String?  // Custom user prompt (optional)
+  result      String   // Final AI-generated diary
+  wordCount   Int      // word count is used for billing and analytics
+  modelUsed   String   // e.g., "gpt-4o", "gpt-4-turbo"
+  generatedAt DateTime @default(now())
+  durationMs  Int      // How long OpenAI took
+
+  User        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([generatedAt])
 }
 
 model VerificationToken {
