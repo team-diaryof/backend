@@ -22,8 +22,10 @@ interface AuthResponse {
   };
 }
 
+export const GUEST_LOGIN_EXPIRY = 15 * 60 * 1000;
+
 export class AuthService {
-  private readonly TEMP_ROLE = "TEMP" as unknown as Role;
+  private readonly TEMP_ROLE = "TEMP";
   // Send registration OTP to the user
   async sendRegistrationOtp(
     email: string,
@@ -31,7 +33,7 @@ export class AuthService {
     name?: string
   ): Promise<{ message: string }> {
     const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser && (existingUser.role as any) !== this.TEMP_ROLE) {
+    if (existingUser && existingUser.role !== this.TEMP_ROLE) {
       throw new Error("User with this email already exists");
     }
 
@@ -86,8 +88,6 @@ export class AuthService {
     const apiUrl = "https://diaryof.vercel.app/api/v1/send-email";
     const headers = {
       "Content-Type": "application/json",
-      // Try standard Authorization header first, fallback to custom header
-      // Authorization: `Bearer ${env.EMAIL_API_SECRET}`,
       "authorization-token": env.EMAIL_API_SECRET,
     };
     const requestBody = {
@@ -130,10 +130,8 @@ export class AuthService {
 
   // Resend OTP to the user (sends the same OTP again)
   async resendOtp(email: string): Promise<{ message: string }> {
-    const vt = (prisma as any).verificationToken;
-
     // Find the existing verification token for this email
-    const tokenRecord = await vt.findFirst({
+    const tokenRecord = await prisma.verificationToken.findFirst({
       where: {
         identifier: email,
         expiresAt: { gt: new Date() },
@@ -203,8 +201,7 @@ export class AuthService {
     otp: string
   ): Promise<AuthResponse> {
     // Verify OTP via VerificationToken table
-    const vt = (prisma as any).verificationToken;
-    const tokenRecord = await vt.findFirst({
+    const tokenRecord = await prisma.verificationToken.findFirst({
       where: {
         identifier: email,
         token: otp,
@@ -219,7 +216,7 @@ export class AuthService {
     // Find the TEMP user created during OTP send
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      await vt.delete({ where: { id: tokenRecord.id } });
+      await prisma.verificationToken.delete({ where: { id: tokenRecord.id } });
       throw new Error("Registration session not found");
     }
 
@@ -236,7 +233,7 @@ export class AuthService {
     });
 
     // Invalidate the OTP after successful registration
-    await vt.delete({ where: { id: tokenRecord.id } });
+    await prisma.verificationToken.delete({ where: { id: tokenRecord.id } });
 
     return {
       token: this.generateToken(updatedUser),
@@ -270,7 +267,7 @@ export class AuthService {
     }
 
     // Only allow password reset for registered users (not TEMP, GUEST)
-    if ((user.role as any) === this.TEMP_ROLE || user.role === Role.GUEST) {
+    if (user.role === this.TEMP_ROLE || user.role === Role.GUEST) {
       return {
         message:
           "If an account exists with this email, a password reset OTP has been sent.",
@@ -422,45 +419,30 @@ export class AuthService {
     email: string,
     newPassword: string
   ): Promise<{ message: string }> {
-    const vt = (prisma as any).verificationToken;
-
-    // Find a valid password reset session token
-    // We look for any token that's not a 6-digit OTP (OTPs are numeric, reset tokens are UUIDs)
-    const resetTokenRecord = await vt.findFirst({
+    const resetTokenRecord = await prisma.verificationToken.findFirst({
       where: {
         identifier: email,
         expiresAt: { gt: new Date() },
       },
     });
 
-    if (!resetTokenRecord) {
+    if (!resetTokenRecord || resetTokenRecord.token.length > 10) {
       throw new Error(
         "No valid password reset session found. Please verify your OTP first."
       );
     }
-
-    // Check if it's a reset token (UUID format, not 6-digit OTP)
-    const isResetToken = resetTokenRecord.token.length > 10;
-    if (!isResetToken) {
-      throw new Error(
-        "No valid password reset session found. Please verify your OTP first."
-      );
-    }
-
-    // Find the user
+    
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      await vt.delete({ where: { id: resetTokenRecord.id } });
+      await prisma.verificationToken.delete({ where: { id: resetTokenRecord.id } });
       throw new Error("User not found");
     }
 
-    // Verify this is for password reset (user should be registered, not TEMP)
     if ((user.role as any) === this.TEMP_ROLE) {
-      await vt.delete({ where: { id: resetTokenRecord.id } });
+      await prisma.verificationToken.delete({ where: { id: resetTokenRecord.id } });
       throw new Error("Invalid reset session");
     }
 
-    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update the password
@@ -471,8 +453,7 @@ export class AuthService {
       },
     });
 
-    // Invalidate the reset token after successful password reset
-    await vt.delete({ where: { id: resetTokenRecord.id } });
+    await prisma.verificationToken.delete({ where: { id: resetTokenRecord.id } });
 
     return { message: "Password reset successfully" };
   }
@@ -518,14 +499,14 @@ export class AuthService {
   }
 
   async guestLogin(): Promise<AuthResponse> {
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min expiry
+    const expiresAt = new Date(Date.now() + GUEST_LOGIN_EXPIRY);
     const user = await prisma.user.create({
       data: {
         email: `guest_${uuidv4()}@example.com`,
         role: Role.GUEST,
         expiresAt,
         name: `Guest_${uuidv4().slice(0, 8)}`,
-        googleId: `guest_${uuidv4()}`, // Provide unique googleId for guests
+        googleId: `guest_${uuidv4()}`,
       },
     });
     return {
@@ -535,11 +516,6 @@ export class AuthService {
   }
 
   private generateToken(user: User, expiresIn: string = "1h"): string {
-    // Token only contains minimal fields needed for authentication/authorization:
-    // - id: to identify the user
-    // - role: for authorization checks
-    // Note: password and googleId are excluded as they're not needed in tokens
-    // (password should never be in tokens, googleId is only used for OAuth lookup)
     return jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {
       expiresIn: expiresIn as any,
     });
