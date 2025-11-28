@@ -11,6 +11,7 @@ import {
   forgotPassword,
   verifyPasswordResetOtp,
   resetPassword,
+  changePassword,
   googleCallback,
 } from "../controllers/authController";
 import {
@@ -47,6 +48,8 @@ router.get(
 );
 
 // Protected routes
+router.post("/change-password", authenticate, authLimiter, changePassword);
+
 router.get(
   "/private",
   authenticate,

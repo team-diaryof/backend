@@ -64,7 +64,7 @@ export const deleteFromCloudinary = async (
   try {
     // Extract public_id from Cloudinary URL
     // Cloudinary URLs format: https://res.cloudinary.com/{cloud_name}/image/upload/{version}/{folder}/{public_id}.{format}
-    const urlMatch = imageUrl.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/);
+    const urlMatch = imageUrl.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/); // Regex for URL
     if (!urlMatch) {
       console.error("Invalid Cloudinary URL format:", imageUrl);
       return false;

@@ -163,6 +163,38 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
+export const changePassword = async (req: Request, res: Response) => {
+  const user = (req as any).user as { id: string };
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword: string;
+    newPassword: string;
+  };
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({
+      error: "Current password and new password are required",
+    });
+  }
+
+  try {
+    const { message } = await authService.changePassword(
+      user.id,
+      currentPassword,
+      newPassword
+    );
+    res.json({ message });
+  } catch (error) {
+    console.error("Change password failed", error);
+    logger.error("Change password failed", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to change password";
+    const status = /incorrect|not found|not available/i.test(message)
+      ? 400
+      : 500;
+    res.status(status).json({ error: message });
+  }
+};
+
 export const googleCallback = (req: Request, res: Response) => {
   const user = (req as any).user;
   const token = jwt.sign({ id: user.id, role: user.role }, env.JWT_SECRET, {

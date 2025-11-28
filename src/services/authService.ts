@@ -477,6 +477,46 @@ export class AuthService {
     return { message: "Password reset successfully" };
   }
 
+  // Change password for authenticated user
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ message: string }> {
+    // Find the user
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if user has a password (not OAuth-only users)
+    if (!user.password) {
+      throw new Error("Password change not available for OAuth-only accounts");
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+    if (!isCurrentPasswordValid) {
+      throw new Error("Current password is incorrect");
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the password
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return { message: "Password changed successfully" };
+  }
+
   async guestLogin(): Promise<AuthResponse> {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min expiry
     const user = await prisma.user.create({
