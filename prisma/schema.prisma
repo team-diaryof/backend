@@ -44,7 +44,8 @@ model Day {
 
 model Task {
   id           String    @id @default(cuid())
-  description  String
+  title        String?   // Short title for the task (optional)
+  description  String?   // Detailed description (optional; will be required in validation for typed tasks)
   timestamp    DateTime  // Full UTC timestamp (from speech or current time if not specified)
   audioUrl     String?   // URL to stored audio file (S3, etc.)
   transcription String?  // Raw transcribed text from speech-to-text

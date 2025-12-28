@@ -45,6 +45,10 @@ app.use("/api/v1", apiV1);
 
 apiV1.use("/auth", authRoutes);
 apiV1.use("/user", userRoutes);
+import taskRoutes from "./routes/taskRoute";
+import dayRoutes from "./routes/dayRoute";
+apiV1.use("/tasks", taskRoutes);
+apiV1.use("/days", dayRoutes);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   logger.error(err.message, { stack: err.stack });
